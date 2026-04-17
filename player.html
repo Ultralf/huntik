@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Huntik — Player</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="dashboard">
+
+    <!-- ─── Top bar ──────────────────────────────────────────────────────── -->
+    <header class="top-bar">
+        <span class="top-bar-logo">HUNTIK</span>
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="sheet">Character Sheet</button>
+            <button class="tab-btn" data-tab="styles">Styles</button>
+            <button class="tab-btn" data-tab="techniques">Techniques</button>
+            <button class="tab-btn" data-tab="magic">Magic</button>
+            <button class="tab-btn" data-tab="equipment">Equipment</button>
+            <button class="tab-btn" data-tab="titans">Titans</button>
+            <button class="tab-btn" data-tab="feats">Feats</button>
+            <button class="tab-btn" data-tab="progression">Progression</button>
+            <button class="tab-btn" data-tab="room">Room</button>
+        </nav>
+        <div class="top-bar-right">
+            <span class="top-bar-account" id="accountBtn" onclick="openAccountSettings()" title="Account settings">
+                <span id="charNameDisplay">—</span> ⚙
+            </span>
+            <button class="btn btn-ghost btn-sm" id="logoutBtn">Logout</button>
+        </div>
+    </header>
+
+    <main class="dashboard-main">
+
+        <!-- CHARACTER SHEET -->
+        <div class="tab-content active" id="tab-sheet"><div id="sheetView"></div></div>
+
+        <!-- STYLES -->
+        <div class="tab-content" id="tab-styles">
+            <div class="sub-nav">
+                <button class="sub-btn active" data-sub="combat" data-parent="styles">Combat Styles</button>
+                <button class="sub-btn" data-sub="weapon" data-parent="styles">Weapon Styles</button>
+            </div>
+            <div class="sub-content active" id="styles-combat" data-parent="styles"></div>
+            <div class="sub-content" id="styles-weapon" data-parent="styles"></div>
+        </div>
+
+        <!-- TECHNIQUES -->
+        <div class="tab-content" id="tab-techniques">
+            <div class="sub-nav">
+                <button class="sub-btn active" data-sub="combat" data-parent="techniques">Combat Moves</button>
+                <button class="sub-btn" data-sub="weapon" data-parent="techniques">Weapon Techniques</button>
+            </div>
+            <div class="sub-content active" id="techniques-combat" data-parent="techniques"></div>
+            <div class="sub-content" id="techniques-weapon" data-parent="techniques">
+                <div id="weaponTechniquesContent"></div>
+            </div>
+        </div>
+
+        <!-- MAGIC -->
+        <div class="tab-content" id="tab-magic">
+            <div id="magicContent"></div>
+        </div>
+
+        <!-- EQUIPMENT -->
+        <div class="tab-content" id="tab-equipment">
+            <!-- Shards & Key Items -->
+            <div id="inventorySection"></div>
+            <!-- Weapons -->
+            <div class="placeholder-section">
+                <div class="placeholder-header">
+                    <h3>Weapons</h3>
+                    <div style="display:flex;gap:0.4rem">
+                        <button class="btn btn-secondary btn-sm" onclick="openAddWeaponModal()">+ Add</button>
+                        <button class="btn btn-primary btn-sm" onclick="openCraftWeaponModal()">Craft</button>
+                    </div>
+                </div>
+                <div id="weaponsList"></div>
+            </div>
+            <!-- Items -->
+            <div class="placeholder-section">
+                <div class="placeholder-header"><h3>Items</h3><button class="btn btn-secondary btn-sm" onclick="openAddItemModal()">+ Add</button></div>
+                <div id="itemsList"></div>
+            </div>
+            <!-- Artifacts -->
+            <div class="placeholder-section">
+                <div class="placeholder-header"><h3>Artifacts</h3><button class="btn btn-secondary btn-sm" onclick="openAddArtifactModal()">+ Add</button></div>
+                <div id="artifactsList"></div>
+            </div>
+        </div>
+
+        <!-- TITANS -->
+        <div class="tab-content" id="tab-titans">
+            <div class="titans-header">
+                <h2>Titan Collection</h2>
+                <button class="btn btn-primary btn-sm" onclick="openTitanModal()">+ Bind Titan</button>
+            </div>
+            <div class="titans-grid" id="titansGrid"></div>
+        </div>
+
+        <!-- PROGRESSION -->
+        <div class="tab-content" id="tab-progression"><div id="progressionContent"></div></div>
+
+        <!-- FEATS -->
+        <div class="tab-content" id="tab-feats">
+            <div class="sub-nav">
+                <button class="sub-btn active" data-sub="myfeats" data-parent="feats">My Feats</button>
+                <button class="sub-btn" data-sub="rankup" data-parent="feats">Rank Up Feats</button>
+                <button class="sub-btn" data-sub="divisionup" data-parent="feats">Division Up Feats</button>
+            </div>
+            <div class="sub-content active" id="feats-myfeats" data-parent="feats"></div>
+            <div class="sub-content" id="feats-rankup" data-parent="feats"></div>
+            <div class="sub-content" id="feats-divisionup" data-parent="feats"></div>
+        </div>
+
+        <!-- ROOM -->
+        <div class="tab-content" id="tab-room">
+            <div class="room-container">
+                <div class="room-join-box">
+                    <h3>Join a Room</h3>
+                    <p style="font-size:0.85rem;color:var(--text-2)">Enter the room code provided by your Game Master.</p>
+                    <div class="room-join-row">
+                        <input type="text" id="roomCodeInput" placeholder="Room code...">
+                        <button class="btn btn-primary" onclick="alert('Room functionality requires the online server. Coming soon!')">Connect</button>
+                    </div>
+                </div>
+                <div class="room-status-note">Room functionality requires the online server.<br>Ask your GM to set up a session.</div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ CHARACTER MODAL -->
+<div class="modal" id="charModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h2 id="modalTitle">Create Character</h2>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="charForm">
+                <div class="form-section">
+                    <div class="form-section-title">Basic Info</div>
+                    <div class="form-row cols-2" style="align-items:start">
+                        <div class="form-field">
+                            <label for="f-name">Name *</label>
+                            <input type="text" id="f-name" placeholder="Character name" required>
+                        </div>
+                        <div class="form-field" style="align-items:center">
+                            <label>Character Image</label>
+                            <div class="img-upload-widget">
+                                <div class="img-upload-preview" id="char-img-preview" onclick="document.getElementById('f-char-image-input').click()">
+                                    <span class="img-placeholder-text">No image</span>
+                                </div>
+                                <input type="file" id="f-char-image-input" accept="image/*" style="display:none">
+                                <span class="btn btn-ghost btn-sm" onclick="document.getElementById('f-char-image-input').click()">Upload</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row cols-2">
+                        <div class="form-field">
+                            <label for="f-originFeat">Origin Feat</label>
+                            <select id="f-originFeat"><option value="">— None —</option></select>
+                        </div>
+                        <div class="form-field">
+                            <label for="f-alignment">Alignment</label>
+                            <select id="f-alignment">
+                                <option value="Neutral">Neutral</option>
+                                <option value="Lawful">Lawful</option>
+                                <option value="Chaotic">Chaotic</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Primary Stats</div>
+                    <div class="stats-input-grid">
+                        <div class="stat-input-card"><label for="f-STR">STR</label><input type="number" id="f-STR" min="1" max="30" value="10"></div>
+                        <div class="stat-input-card"><label for="f-AGL">AGL</label><input type="number" id="f-AGL" min="1" max="30" value="10"></div>
+                        <div class="stat-input-card"><label for="f-DEF">DEF</label><input type="number" id="f-DEF" min="1" max="30" value="10"></div>
+                        <div class="stat-input-card"><label for="f-WLL">WLL</label><input type="number" id="f-WLL" min="1" max="30" value="10"></div>
+                        <div class="stat-input-card"><label for="f-INT">INT</label><input type="number" id="f-INT" min="1" max="30" value="10"></div>
+                        <div class="stat-input-card"><label for="f-PCHA">PCHA</label><input type="number" id="f-PCHA" min="1" max="30" value="10"></div>
+                        <div class="stat-input-card"><label for="f-NCHA">NCHA</label><input type="number" id="f-NCHA" min="1" max="30" value="10"></div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Auto-Calculated</div>
+                    <div class="rank-preview-row">
+                        <span class="rank-preview-label">Rank</span>
+                        <span class="badge badge-rank rank-d" id="prev-rank-badge">D-</span>
+                        <span style="color:var(--text-muted);font-size:0.78rem">Total: <span id="prev-total">70</span></span>
+                    </div>
+                    <div class="derived-preview">
+                        <div class="prev-item"><span class="prev-label">CHA</span><span class="prev-value" id="prev-CHA">10 (+0)</span></div>
+                        <div class="prev-item"><span class="prev-label">HP</span><span class="prev-value" id="prev-HP">65</span></div>
+                        <div class="prev-item"><span class="prev-label">STA</span><span class="prev-value" id="prev-STA">—</span></div>
+                        <div class="prev-item"><span class="prev-label">EP Slots</span><span class="prev-value" id="prev-EP">2</span></div>
+                        <div class="prev-item"><span class="prev-label">AC DEF</span><span class="prev-value" id="prev-ACDEF">10</span></div>
+                        <div class="prev-item"><span class="prev-label">AC AGL</span><span class="prev-value" id="prev-ACAGL">10</span></div>
+                        <div class="prev-item"><span class="prev-label">SPL</span><span class="prev-value" id="prev-SPL">10 (+0)</span></div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Improvement Points</div>
+                    <div class="form-row cols-3">
+                        <div class="form-field"><label for="f-combatMastering">Combat Mastering <small style="color:var(--text-muted)">(STR/AGL/DEF)</small></label><input type="number" id="f-combatMastering" min="0" value="0"></div>
+                        <div class="form-field"><label for="f-mentalMastering">Mental Mastering <small style="color:var(--text-muted)">(INT/WLL)</small></label><input type="number" id="f-mentalMastering" min="0" value="0"></div>
+                        <div class="form-field"><label for="f-socialInteraction">Social Interaction <small style="color:var(--text-muted)">(PCHA/NCHA)</small></label><input type="number" id="f-socialInteraction" min="0" value="0"></div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Training Points</div>
+                    <div class="form-row cols-2">
+                        <div class="form-field"><label for="f-PPM">PPM — Martial Arts</label><input type="number" id="f-PPM" min="0" value="0"></div>
+                        <div class="form-field"><label for="f-PPArm">PPArm — Weapons</label><input type="number" id="f-PPArm" min="0" value="0"></div>
+                        <div class="form-field"><label for="f-PPA">PPA — Spells</label><input type="number" id="f-PPA" min="0" value="0"></div>
+                        <div class="form-field"><label for="f-PPR">PPR — Reputation</label><input type="number" id="f-PPR" min="0" value="0"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="document.getElementById('charForm').requestSubmit()">Save Character</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ ACCOUNT MODAL -->
+<div class="modal" id="accountModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2>Account Settings</h2>
+            <button class="modal-close" onclick="closeAccountSettings()">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="accountForm">
+                <div class="form-section">
+                    <div class="form-section-title">Username</div>
+                    <div class="form-field">
+                        <label for="acc-loginName">Change your login username</label>
+                        <input type="text" id="acc-loginName" placeholder="New username (min 3 chars)" autocomplete="off">
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Change Password</div>
+                    <div class="form-row cols-2">
+                        <div class="form-field"><label for="acc-newPass">New Password</label><input type="password" id="acc-newPass" placeholder="Leave blank to keep"></div>
+                        <div class="form-field"><label for="acc-confirmPass">Confirm New</label><input type="password" id="acc-confirmPass" placeholder="Repeat new password"></div>
+                    </div>
+                    <input type="hidden" id="acc-currentPass">
+                </div>
+                <div id="acc-msg" class="acc-msg"></div>
+            </form>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeAccountSettings()">Cancel</button>
+            <button class="btn btn-primary" onclick="document.getElementById('accountForm').requestSubmit()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ PICKER MODAL -->
+<div class="modal" id="pickerModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2 id="pickerModalTitle">Select</h2>
+            <button class="modal-close" onclick="closePickerModal()">✕</button>
+        </div>
+        <div class="modal-body" id="pickerModalBody"></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ ADD IMPROVEMENT PP MODAL -->
+<div class="modal" id="addImprPPModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2>Add Improvement Points</h2>
+            <button class="modal-close" onclick="closeAddImprPPModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem">Enter the amount received from the GM. Values are added to your current totals.</p>
+            <div class="form-field" style="margin-bottom:0.75rem">
+                <label>Combat Mastering PP <small style="color:var(--text-muted)">(STR / AGL / DEF)</small></label>
+                <input type="number" id="add-impr-combat" min="0" value="0" placeholder="0">
+            </div>
+            <div class="form-field" style="margin-bottom:0.75rem">
+                <label>Mental Mastering PP <small style="color:var(--text-muted)">(INT / WLL)</small></label>
+                <input type="number" id="add-impr-mental" min="0" value="0" placeholder="0">
+            </div>
+            <div class="form-field" style="margin-bottom:1rem">
+                <label>Social Interaction PP <small style="color:var(--text-muted)">(PCHA / NCHA)</small></label>
+                <input type="number" id="add-impr-social" min="0" value="0" placeholder="0">
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeAddImprPPModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="applyAddImprPP()">Add Points</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ ADD TRAINING PP MODAL -->
+<div class="modal" id="addTrainPPModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2>Add Training Points</h2>
+            <button class="modal-close" onclick="closeAddTrainPPModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem">Enter the amount received from the GM. Values are added to your current totals.</p>
+            <div class="form-field" style="margin-bottom:0.75rem">
+                <label>PPM — Martial Arts Training</label>
+                <input type="number" id="add-train-ppm" min="0" value="0" placeholder="0">
+            </div>
+            <div class="form-field" style="margin-bottom:0.75rem">
+                <label>PPArm — Weapons Training</label>
+                <input type="number" id="add-train-pparm" min="0" value="0" placeholder="0">
+            </div>
+            <div class="form-field" style="margin-bottom:0.75rem">
+                <label>PPA — Spells</label>
+                <input type="number" id="add-train-ppa" min="0" value="0" placeholder="0">
+            </div>
+            <div class="form-field" style="margin-bottom:1rem">
+                <label>PPR — Reputation</label>
+                <input type="number" id="add-train-ppr" min="0" value="0" placeholder="0">
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeAddTrainPPModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="applyAddTrainPP()">Add Points</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ SPEND PPR MODAL -->
+<div class="modal" id="spendPPRModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2>Adjust Reputation</h2>
+            <button class="modal-close" onclick="closeSpendPPRModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem">Current PPR: <strong id="ppr-current-display" style="color:var(--gold)">0</strong></p>
+            <div class="form-field" style="margin-bottom:1rem">
+                <label>Amount to spend (positive = spend, negative = earn)</label>
+                <input type="number" id="ppr-spend-amount" placeholder="e.g. 50">
+            </div>
+            <div class="form-field">
+                <label>Reason (optional)</label>
+                <input type="text" id="ppr-spend-reason" placeholder="e.g. Bribed city guard">
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeSpendPPRModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmSpendPPR()">Apply</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ SPELL MODAL -->
+<div class="modal" id="spellModal">
+    <div class="modal-box" style="max-width:620px">
+        <div class="modal-head">
+            <h2 id="spellModalTitle">Add Spell</h2>
+            <button class="modal-close" onclick="closeSpellModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="spellForm">
+                <div class="form-section">
+                    <div class="form-section-title">Spell Info</div>
+                    <div class="form-row cols-2">
+                        <div class="form-field">
+                            <label for="sp-name">Spell Name *</label>
+                            <input type="text" id="sp-name" placeholder="e.g. Fireball" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="sp-class">Class</label>
+                            <select id="sp-class"><option value="">— Select —</option></select>
+                        </div>
+                    </div>
+                    <div class="form-row cols-2">
+                        <div class="form-field">
+                            <label for="sp-rank">Rank</label>
+                            <select id="sp-rank">
+                                <option value="D-">D-</option><option value="D">D</option><option value="D+">D+</option>
+                                <option value="C-">C-</option><option value="C">C</option><option value="C+">C+</option>
+                                <option value="B-">B-</option><option value="B">B</option><option value="B+">B+</option>
+                                <option value="A-">A-</option><option value="A">A</option><option value="A+">A+</option>
+                                <option value="S-">S-</option><option value="S">S</option><option value="S+">S+</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="sp-cost-note" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem"></div>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Description</div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label for="sp-effect">Effect</label>
+                        <textarea id="sp-effect" rows="3" placeholder="What does the spell do?"></textarea>
+                    </div>
+                    <div class="form-field">
+                        <label for="sp-stats">Stats</label>
+                        <input type="text" id="sp-stats" placeholder="e.g. SPL +2, Range 30ft, AoE">
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Tags</div>
+                    <div class="tag-checkboxes" id="sp-tags"></div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeSpellModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="document.getElementById('spellForm').requestSubmit()">Save Spell</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ SHARD/KEYITEM ADD MODAL -->
+<div class="modal" id="inventoryAddModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2 id="invModalTitle">Add to Inventory</h2>
+            <button class="modal-close" onclick="closeInventoryAddModal()">✕</button>
+        </div>
+        <div class="modal-body" id="invModalBody"></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ TITAN BP MODAL -->
+<div class="modal" id="bpModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2>Adjust BP — <span id="bp-titan-name"></span></h2>
+            <button class="modal-close" onclick="closeBPModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;gap:1.5rem;margin-bottom:1rem">
+                <div><div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Current BP</div><div style="font-size:1.4rem;font-weight:700;color:var(--gold)" id="bp-current-display">0</div></div>
+                <div><div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Tier</div><div style="font-size:1.4rem;font-weight:700;color:var(--text)" id="bp-tier-display">0</div></div>
+            </div>
+            <div class="form-field" style="margin-bottom:1rem">
+                <label>Amount to add/subtract (use negative to subtract)</label>
+                <input type="number" id="bp-amount-input" placeholder="e.g. 50 or -50">
+            </div>
+            <input type="hidden" id="bp-modal-titan-id">
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeBPModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="applyBPChange()">Apply</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ TITAN VIEW -->
+<div class="modal" id="titanViewModal">
+    <div class="modal-box" style="max-width:700px">
+        <div class="modal-head"><h2>Titan Sheet</h2><button class="modal-close" onclick="closeTitanView()">✕</button></div>
+        <div class="modal-body" id="titanViewContent"></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ TITAN FORM -->
+<div class="modal" id="titanModal">
+    <div class="modal-box" style="max-width:700px">
+        <div class="modal-head">
+            <h2 id="titanModalTitle">Add Titan</h2>
+            <button class="modal-close" onclick="closeTitanModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="titanForm">
+                <div class="form-section">
+                    <div class="form-section-title">Images</div>
+                    <div class="titan-img-upload-row">
+                        <div class="img-upload-widget">
+                            <div class="form-field" style="align-items:center"><label>Titan Image</label></div>
+                            <div class="img-upload-preview" id="titan-img-preview" onclick="document.getElementById('tf-image-input').click()"><span class="img-placeholder-text">◈</span></div>
+                            <input type="file" id="tf-image-input" accept="image/*" style="display:none">
+                            <span class="btn btn-ghost btn-sm" onclick="document.getElementById('tf-image-input').click()">Upload</span>
+                        </div>
+                        <div class="img-upload-widget">
+                            <div class="form-field" style="align-items:center"><label>Amulet Image</label></div>
+                            <div class="img-upload-preview" id="titan-amulet-preview" onclick="document.getElementById('tf-amulet-input').click()"><span class="img-placeholder-text">Amulet</span></div>
+                            <input type="file" id="tf-amulet-input" accept="image/*" style="display:none">
+                            <span class="btn btn-ghost btn-sm" onclick="document.getElementById('tf-amulet-input').click()">Upload</span>
+                        </div>
+                        <div class="img-upload-widget">
+                            <div class="form-field" style="align-items:center"><label>Icon Image</label></div>
+                            <div class="img-upload-preview" id="titan-icon-preview" onclick="document.getElementById('tf-icon-input').click()"><span class="img-placeholder-text">Icon</span></div>
+                            <input type="file" id="tf-icon-input" accept="image/*" style="display:none">
+                            <span class="btn btn-ghost btn-sm" onclick="document.getElementById('tf-icon-input').click()">Upload</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Basic Info</div>
+                    <div class="form-row cols-2">
+                        <div class="form-field"><label for="tf-name">Titan Name *</label><input type="text" id="tf-name" placeholder="e.g. Holototh" required></div>
+                        <div class="form-field"><label for="tf-type">Type</label><input type="text" id="tf-type" placeholder="e.g. Warrior, Support..."></div>
+                    </div>
+                    <div class="form-row cols-3">
+                        <div class="form-field">
+                            <label for="tf-rank">Rank</label>
+                            <select id="tf-rank"><option>D-</option><option>D</option><option>D+</option><option>C-</option><option selected>C</option><option>C+</option><option>B-</option><option>B</option><option>B+</option><option>A-</option><option>A</option><option>A+</option><option>S-</option><option>S</option><option>S+</option></select>
+                        </div>
+                        <div class="form-field">
+                            <label for="tf-size">Size</label>
+                            <select id="tf-size">
+                                <option value="small">Small (+1/rank)</option>
+                                <option value="average" selected>Average (+2/rank)</option>
+                                <option value="large">Large (+3/rank)</option>
+                                <option value="colossal">Colossal (+4/rank)</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="tf-linkDifficulty">Link Difficulty / STA Cost</label>
+                            <input type="number" id="tf-linkDifficulty" min="1" max="100" value="50">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Stats <small style="color:var(--text-muted);font-weight:400">(direct modifiers — e.g. 2 means +2)</small></div>
+                    <div class="stats-input-grid">
+                        <div class="stat-input-card"><label for="tf-ATK">ATK</label><input type="number" id="tf-ATK" min="-10" max="20" value="0"></div>
+                        <div class="stat-input-card"><label for="tf-DEF">DEF</label><input type="number" id="tf-DEF" min="-10" max="20" value="0"></div>
+                        <div class="stat-input-card"><label for="tf-AGL">AGL</label><input type="number" id="tf-AGL" min="-10" max="20" value="0"></div>
+                        <div class="stat-input-card"><label for="tf-SPL">SPL</label><input type="number" id="tf-SPL" min="-10" max="20" value="0"></div>
+                        <div class="stat-input-card"><label for="tf-baseHP">Base HP</label><input type="number" id="tf-baseHP" min="1" value="30"></div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Derived (auto)</div>
+                    <div class="derived-preview">
+                        <div class="prev-item"><span class="prev-label">HP (at seeker rank)</span><span class="prev-value" id="tprev-HP">—</span></div>
+                        <div class="prev-item"><span class="prev-label">AC</span><span class="prev-value" id="tprev-AC">—</span></div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Abilities</div>
+                    <div id="abilitiesList"></div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="addAbility()" style="margin-top:0.5rem">+ Add Ability</button>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Traits (positive / negative)</div>
+                    <textarea id="tf-traits" rows="3" placeholder="Describe traits, weaknesses, special behaviours..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeTitanModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="document.getElementById('titanForm').requestSubmit()">Save Titan</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ WEAPON TYPE DIALOG -->
+<div class="modal" id="weaponTypeDialog">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head"><h2 id="wtd-title">Choose Weapon Type</h2><button class="modal-close" onclick="closeWeaponTypeDialog()">✕</button></div>
+        <div class="modal-body">
+            <input type="hidden" id="weaponTypeDialogMode" value="add">
+            <div class="type-select-btns">
+                <button type="button" class="type-select-btn" onclick="selectWeaponType('regular')">
+                    <span class="type-icon">⚔</span>Regular
+                </button>
+                <button type="button" class="type-select-btn" onclick="selectWeaponType('special')">
+                    <span class="type-icon">✦</span>Special
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ WEAPON FORM MODAL -->
+<div class="modal" id="weaponFormModal">
+    <div class="modal-box" style="max-width:640px">
+        <div class="modal-head">
+            <h2 id="weaponFormTitle">Add Weapon</h2>
+            <button class="modal-close" onclick="closeWeaponFormModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="weaponForm">
+                <input type="hidden" id="wf-type" value="regular">
+                <div class="form-section">
+                    <div class="form-section-title">Info</div>
+                    <div class="form-row cols-2" style="align-items:start">
+                        <div class="form-field">
+                            <label for="wf-name">Weapon Name *</label>
+                            <input type="text" id="wf-name" placeholder="e.g. Iron Sword" required>
+                            <label for="wf-material" style="margin-top:0.6rem">Material</label>
+                            <select id="wf-material" onchange="updateMaterialEffectHint()"><option value="">— Select —</option></select>
+                            <div id="wf-material-hint" style="font-size:0.75rem;color:var(--gold-dim);margin-top:0.3rem;font-style:italic"></div>
+                            <label for="wf-enchantment" style="margin-top:0.6rem">Enchantment</label>
+                            <select id="wf-enchantment"><option value="">— None —</option></select>
+                        </div>
+                        <div class="form-field" style="align-items:center">
+                            <label>Weapon Image</label>
+                            <div class="img-upload-widget">
+                                <div class="img-upload-preview" id="wf-img-preview" onclick="document.getElementById('wf-img-input').click()"><span class="img-placeholder-text">⚔</span></div>
+                                <input type="file" id="wf-img-input" accept="image/*" style="display:none">
+                                <span class="btn btn-ghost btn-sm" onclick="document.getElementById('wf-img-input').click()">Upload</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="wf-effect-row" class="form-field" style="margin-top:0.6rem">
+                        <label for="wf-effect">Special Effect</label>
+                        <textarea id="wf-effect" rows="2" placeholder="What makes this weapon special..."></textarea>
+                    </div>
+                    <p id="wf-dur-note" style="font-size:0.78rem;color:var(--text-muted);margin-top:0.4rem">Regular weapons have 5 missions of durability.</p>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Weapon Type Tags <small style="color:var(--text-muted)">(up to 2)</small></div>
+                    <div id="wf-weapon-type-container"></div>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Usage Tags <small style="color:var(--text-muted)">(pick any)</small></div>
+                    <div class="tag-checkboxes" id="wf-usage-tags"></div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeWeaponFormModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="document.getElementById('weaponForm').requestSubmit()">Save Weapon</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ CRAFT FLOW MODAL -->
+<div class="modal" id="craftFlowModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2 id="craftFlowTitle">Craft Weapon</h2>
+            <button class="modal-close" onclick="closeCraftFlowModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="wc-type" value="regular">
+            <div id="craftContent"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ EP EDIT MODAL -->
+<div class="modal" id="editEPModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2>Edit EP Slots</h2>
+            <button class="modal-close" onclick="closeEditEPModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1rem">Max EP: <strong id="ep-max-display" style="color:var(--gold)">—</strong></p>
+            <div class="form-field" style="margin-bottom:1rem">
+                <label>Current EP (used)</label>
+                <input type="number" id="ep-current-input" min="0" placeholder="0">
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeEditEPModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="applyEditEP()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ ITEM ADD MODAL -->
+<div class="modal" id="itemAddModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2 id="itemModalTitle">Add Item</h2>
+            <button class="modal-close" onclick="closeItemModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-field" style="margin-bottom:0.75rem">
+                <label>Item Name *</label>
+                <input type="text" id="item-name" placeholder="e.g. Health Potion">
+            </div>
+            <div class="form-field" style="margin-bottom:0.75rem">
+                <label>Description</label>
+                <textarea id="item-desc" rows="2" placeholder="What is this item?"></textarea>
+            </div>
+            <div class="form-field" style="margin-bottom:0.75rem">
+                <label>Effect</label>
+                <input type="text" id="item-effect" placeholder="e.g. Restores 20 HP">
+            </div>
+            <div class="form-field" style="margin-bottom:1rem">
+                <label>Quantity</label>
+                <input type="number" id="item-qty" min="1" value="1">
+            </div>
+        </div>
+        <div class="modal-foot" style="justify-content:space-between">
+            <button class="btn btn-danger" id="item-delete-btn" style="display:none" onclick="deleteEditingItem()">Delete</button>
+            <div style="display:flex;gap:0.5rem">
+                <button class="btn btn-ghost" onclick="closeItemModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmAddItem()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ ARTIFACT ADD MODAL -->
+<div class="modal" id="artifactAddModal">
+    <div class="modal-box" style="max-width:600px">
+        <div class="modal-head">
+            <h2 id="artifactModalTitle">Add Artifact</h2>
+            <button class="modal-close" onclick="closeArtifactModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-row cols-2" style="align-items:start">
+                <div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>Artifact Name *</label>
+                        <input type="text" id="art-name" placeholder="e.g. Ring of Power">
+                    </div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>Description</label>
+                        <textarea id="art-desc" rows="2" placeholder="What is this artifact?"></textarea>
+                    </div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>Use Condition</label>
+                        <input type="text" id="art-condition" placeholder="e.g. Must be attuned">
+                    </div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>Passive</label>
+                        <input type="text" id="art-passive" placeholder="Always-on effect...">
+                    </div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>Active</label>
+                        <textarea id="art-active" rows="2" placeholder="Activated effect..."></textarea>
+                    </div>
+                </div>
+                <div class="form-field" style="align-items:center">
+                    <label>Image</label>
+                    <div class="img-upload-widget">
+                        <div class="img-upload-preview" id="art-img-preview" onclick="document.getElementById('art-img-input').click()"><span class="img-placeholder-text">◈</span></div>
+                        <input type="file" id="art-img-input" accept="image/*" style="display:none">
+                        <span class="btn btn-ghost btn-sm" onclick="document.getElementById('art-img-input').click()">Upload</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-foot" style="justify-content:space-between">
+            <button class="btn btn-danger" id="art-delete-btn" style="display:none" onclick="deleteEditingArtifact()">Delete</button>
+            <div style="display:flex;gap:0.5rem">
+                <button class="btn btn-ghost" onclick="closeArtifactModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmAddArtifact()">Save Artifact</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ─── Scripts ──────────────────────────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/lists.js"></script>
+<script src="js/character.js"></script>
+<script src="js/titans.js"></script>
+<script src="js/weapons.js"></script>
+<script>
+    // ─── Auth guard + async init ──────────────────────────────────────────────
+    (async function() {
+        // Show loading state
+        document.querySelector('.dashboard-main').innerHTML =
+            `<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;color:var(--text-muted);font-size:0.9rem">Loading…</div>`;
+
+        // Restore Supabase session
+        const session = await sbRestoreSession();
+        if (!session || session.role !== 'player') {
+            window.location.href = 'index.html'; return;
+        }
+
+        // Load all data in parallel
+        await Promise.all([
+            sbLoadCharacter(),
+            sbLoadTitans(),
+            initLists(),
+        ]);
+
+        // Re-render the full layout now that data is ready
+        document.querySelector('.dashboard-main').innerHTML = `
+
+        <!-- CHARACTER SHEET -->
+        <div class="tab-content active" id="tab-sheet"><div id="sheetView"></div></div>
+
+        <!-- STYLES -->
+        <div class="tab-content" id="tab-styles">
+            <div class="sub-nav">
+                <button class="sub-btn active" data-sub="combat" data-parent="styles">Combat Styles</button>
+                <button class="sub-btn" data-sub="weapon" data-parent="styles">Weapon Styles</button>
+            </div>
+            <div class="sub-content active" id="styles-combat" data-parent="styles"></div>
+            <div class="sub-content" id="styles-weapon" data-parent="styles"></div>
+        </div>
+
+        <!-- TECHNIQUES -->
+        <div class="tab-content" id="tab-techniques">
+            <div class="sub-nav">
+                <button class="sub-btn active" data-sub="combat" data-parent="techniques">Combat Moves</button>
+                <button class="sub-btn" data-sub="weapon" data-parent="techniques">Weapon Techniques</button>
+            </div>
+            <div class="sub-content active" id="techniques-combat" data-parent="techniques"></div>
+            <div class="sub-content" id="techniques-weapon" data-parent="techniques">
+                <div id="weaponTechniquesContent"></div>
+            </div>
+        </div>
+
+        <!-- MAGIC -->
+        <div class="tab-content" id="tab-magic">
+            <div id="magicContent"></div>
+        </div>
+
+        <!-- EQUIPMENT -->
+        <div class="tab-content" id="tab-equipment">
+            <div id="inventorySection"></div>
+            <div class="placeholder-section">
+                <div class="placeholder-header">
+                    <h3>Weapons</h3>
+                    <div style="display:flex;gap:0.4rem">
+                        <button class="btn btn-secondary btn-sm" onclick="openAddWeaponModal()">+ Add</button>
+                        <button class="btn btn-primary btn-sm" onclick="openCraftWeaponModal()">Craft</button>
+                    </div>
+                </div>
+                <div id="weaponsList"></div>
+            </div>
+            <div class="placeholder-section">
+                <div class="placeholder-header"><h3>Items</h3><button class="btn btn-secondary btn-sm" onclick="openAddItemModal()">+ Add</button></div>
+                <div id="itemsList"></div>
+            </div>
+            <div class="placeholder-section">
+                <div class="placeholder-header"><h3>Artifacts</h3><button class="btn btn-secondary btn-sm" onclick="openAddArtifactModal()">+ Add</button></div>
+                <div id="artifactsList"></div>
+            </div>
+        </div>
+
+        <!-- TITANS -->
+        <div class="tab-content" id="tab-titans">
+            <div class="titans-header">
+                <h2>Titan Collection</h2>
+                <button class="btn btn-primary btn-sm" onclick="openTitanModal()">+ Bind Titan</button>
+            </div>
+            <div class="titans-grid" id="titansGrid"></div>
+        </div>
+
+        <!-- PROGRESSION -->
+        <div class="tab-content" id="tab-progression"><div id="progressionContent"></div></div>
+
+        <!-- FEATS -->
+        <div class="tab-content" id="tab-feats">
+            <div class="sub-nav">
+                <button class="sub-btn active" data-sub="myfeats" data-parent="feats">My Feats</button>
+                <button class="sub-btn" data-sub="rankup" data-parent="feats">Rank Up Feats</button>
+                <button class="sub-btn" data-sub="divisionup" data-parent="feats">Division Up Feats</button>
+            </div>
+            <div class="sub-content active" id="feats-myfeats" data-parent="feats"></div>
+            <div class="sub-content" id="feats-rankup" data-parent="feats"></div>
+            <div class="sub-content" id="feats-divisionup" data-parent="feats"></div>
+        </div>
+
+        <!-- ROOM -->
+        <div class="tab-content" id="tab-room">
+            <div class="room-container">
+                <div class="room-join-box">
+                    <h3>Join a Room</h3>
+                    <p style="font-size:0.85rem;color:var(--text-2)">Enter the room code provided by your Game Master.</p>
+                    <div class="room-join-row">
+                        <input type="text" id="roomCodeInput" placeholder="Room code...">
+                        <button class="btn btn-primary" onclick="alert('Room functionality coming soon!')">Connect</button>
+                    </div>
+                </div>
+                <div class="room-status-note">Room functionality is being implemented.<br>Ask your GM to set up a session.</div>
+            </div>
+        </div>`;
+
+        // ─── Tab switching ─────────────────────────────────────────────────────
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+                if (btn.dataset.tab === 'feats') renderFeatsTab();
+            });
+        });
+
+        // ─── Sub-tab switching ─────────────────────────────────────────────────
+        document.querySelectorAll('.sub-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const parent = btn.dataset.parent;
+                document.querySelectorAll(`.sub-btn[data-parent="${parent}"]`).forEach(b => b.classList.remove('active'));
+                document.querySelectorAll(`.sub-content[data-parent="${parent}"]`).forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                const target = document.getElementById(`${parent}-${btn.dataset.sub}`);
+                if (target) target.classList.add('active');
+            });
+        });
+
+        // ─── Logout ────────────────────────────────────────────────────────────
+        document.getElementById('charNameDisplay').textContent = session.displayName || session.username;
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            clearSession(); window.location.href = 'index.html';
+        });
+
+        // ─── Init all sections ─────────────────────────────────────────────────
+        initCharacterPage();
+        initTitansPage();
+        initWeaponsSection();
+    })();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p \"C:\\\\Users\\\\alfsoares\\\\OneDrive - Deloitte \\(O365D\\)\\\\Desktop\\\\Claude Project\\\\css\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\alfsoares\\\\OneDrive - Deloitte \\(O365D\\)\\\\Desktop\\\\Claude Project\\\\js\")"
+    ]
+  }
+}
