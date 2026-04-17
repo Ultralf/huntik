@@ -1461,8 +1461,9 @@ async function adminCreateRoom() {
     msgEl.style.color = 'var(--text-muted)'; msgEl.textContent = 'Creating room…';
 
     const code = generateRoomCode();
+    // id is auto-generated UUID; code is the 6-char human-readable join code
     const { data, error } = await _sbA.from('rooms').insert({
-        id: code, created_by: session.userId, name, is_open: true, scene: {}, initiative: [],
+        code, created_by: session.userId, name, is_open: true, scene: {}, initiative: [],
     }).select().single();
 
     if (error) { msgEl.style.color='var(--danger)'; msgEl.textContent = error.message; return; }
@@ -1477,18 +1478,18 @@ async function adminCreateRoom() {
 
 function adminEnterRoom() {
     if (!_activeRoom) return;
-    window.location.href = `room.html?code=${_activeRoom.id}`;
+    window.location.href = `room.html?code=${_activeRoom.code}`;
 }
 
 function copyRoomCode() {
-    const code = _activeRoom?.id;
+    const code = _activeRoom?.code;
     if (!code) return;
     navigator.clipboard.writeText(code).then(() => alert('Code "' + code + '" copied to clipboard!'));
 }
 
 async function adminCloseActiveRoom() {
     if (!_activeRoom) return;
-    if (!confirm('Close room "' + _activeRoom.id + '"? All players will be disconnected.')) return;
+    if (!confirm('Close room "' + _activeRoom.code + '"? All players will be disconnected.')) return;
     await _sbA.from('rooms').update({ is_open: false }).eq('id', _activeRoom.id);
     _activeRoom = null;
     document.getElementById('activeRoomSection').style.display = 'none';
@@ -1504,11 +1505,11 @@ async function loadPastRooms() {
     container.innerHTML = data.map(r => `
         <div class="admin-list-item" style="justify-content:space-between">
             <div>
-                <div style="font-weight:600;color:var(--gold-dim);font-family:'Cinzel',serif;letter-spacing:0.1em">${r.id}</div>
+                <div style="font-weight:600;color:var(--gold-dim);font-family:'Cinzel',serif;letter-spacing:0.1em">${r.code || r.id}</div>
                 <div style="font-size:0.78rem;color:var(--text-2)">${r.name} · ${r.is_open ? '<span style="color:var(--rank-c)">Open</span>' : '<span style="color:var(--text-muted)">Closed</span>'}</div>
             </div>
             <div style="display:flex;gap:0.35rem">
-                ${r.is_open ? `<button class="btn btn-sm btn-ghost" onclick="rejoinRoom('${r.id}')">Enter</button>` : ''}
+                ${r.is_open && r.code ? `<button class="btn btn-sm btn-ghost" onclick="rejoinRoom('${r.code}')">Enter</button>` : ''}
                 <button class="btn btn-sm btn-danger" onclick="deletePastRoom('${r.id}')">Delete</button>
             </div>
         </div>`).join('');

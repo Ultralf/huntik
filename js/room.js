@@ -5,7 +5,8 @@
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let _room       = null;   // current room object from DB
-let _roomCode   = null;
+let _roomCode   = null;   // 6-char display code (rooms.code)
+let _roomId     = null;   // UUID (rooms.id) — used as FK in all child tables
 let _isAdmin    = false;
 let _session    = null;
 let _channel    = null;   // Supabase Realtime channel
@@ -24,7 +25,7 @@ let _tokenSize   = 64;    // default px
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (async function init() {
-    const params   = new URLSearchParams(window.location.search);
+    const params  = new URLSearchParams(window.location.search);
     _roomCode = (params.get('code') || '').toUpperCase();
 
     _session = await sbRestoreSession();
@@ -32,37 +33,35 @@ let _tokenSize   = 64;    // default px
     _isAdmin = _session.role === 'admin';
 
     setMsg('Joining room ' + _roomCode + '…');
-
-    // Mark body class
     document.body.classList.add(_isAdmin ? 'is-admin' : 'is-player');
 
-    // Load room
-    const { data: roomData, error } = await _sb.from('rooms').select('*').eq('id', _roomCode).single();
+    // Load room by code column
+    const { data: roomData, error } = await _sb.from('rooms').select('*').eq('code', _roomCode).single();
     if (error || !roomData) { setMsg('Room not found or has been closed.'); return; }
     if (!roomData.is_open)  { setMsg('This room is closed.'); return; }
 
     _room       = roomData;
+    _roomId     = roomData.id;   // UUID for FK queries
     _scene      = roomData.scene || {};
     _initiative = roomData.initiative || [];
 
-    // Set UI labels
     document.getElementById('roomCodeDisplay').textContent = _roomCode;
     document.getElementById('roomUserLabel').textContent   = _session.username;
 
-    // Subscribe to Realtime
+    // Subscribe to Realtime (channel keyed by code for readability)
     _channel = _sb.channel('room:' + _roomCode, { config: { presence: { key: _session.userId } } });
 
     _channel
         .on('presence', { event: 'sync' }, onPresenceSync)
-        .on('broadcast', { event: 'token_moved' },   e => onTokenMoved(e.payload))
-        .on('broadcast', { event: 'token_added' },   e => onTokenAdded(e.payload))
-        .on('broadcast', { event: 'token_removed' }, e => onTokenRemoved(e.payload))
-        .on('broadcast', { event: 'token_updated' }, e => onTokenUpdated(e.payload))
-        .on('broadcast', { event: 'scene_updated' }, e => onSceneUpdated(e.payload))
+        .on('broadcast', { event: 'token_moved' },        e => onTokenMoved(e.payload))
+        .on('broadcast', { event: 'token_added' },        e => onTokenAdded(e.payload))
+        .on('broadcast', { event: 'token_removed' },      e => onTokenRemoved(e.payload))
+        .on('broadcast', { event: 'token_updated' },      e => onTokenUpdated(e.payload))
+        .on('broadcast', { event: 'scene_updated' },      e => onSceneUpdated(e.payload))
         .on('broadcast', { event: 'initiative_updated' }, e => onInitiativeUpdated(e.payload))
-        .on('broadcast', { event: 'chat_message' },  e => onChatMessage(e.payload))
-        .on('broadcast', { event: 'room_closed' },   () => onRoomClosed())
-        .on('broadcast', { event: 'player_kicked' }, e => { if (e.payload.userId === _session.userId) onKicked(); })
+        .on('broadcast', { event: 'chat_message' },       e => onChatMessage(e.payload))
+        .on('broadcast', { event: 'room_closed' },        () => onRoomClosed())
+        .on('broadcast', { event: 'player_kicked' },      e => { if (e.payload.userId === _session.userId) onKicked(); })
         .subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
                 await _channel.track({ username: _session.username, role: _session.role, userId: _session.userId });
@@ -73,30 +72,21 @@ let _tokenSize   = 64;    // default px
 })();
 
 async function loadInitialData() {
-    // Load tokens
-    const { data: tokensData } = await _sb.from('room_tokens').select('*').eq('room_id', _roomCode);
+    const { data: tokensData } = await _sb.from('room_tokens').select('*').eq('room_id', _roomId);
     _tokens = {};
     if (tokensData) tokensData.forEach(t => { _tokens[t.id] = t; });
 
-    // Render everything
     applyScene(_scene);
     renderAllTokens();
     renderInitiativeList();
 
-    // Load chat history
     const { data: chatData } = await _sb.from('room_chat')
-        .select('*').eq('room_id', _roomCode).order('created_at', { ascending: true }).limit(100);
+        .select('*').eq('room_id', _roomId).order('created_at', { ascending: true }).limit(100);
     if (chatData) chatData.forEach(m => appendChatMessage(m, false));
     scrollChatToBottom();
 
-    // Player tray
     if (!_isAdmin) buildPlayerTray();
-
-    // Admin: load library
-    if (_isAdmin) {
-        loadTokenLibrary();
-        loadSceneLibrary();
-    }
+    if (_isAdmin) { loadTokenLibrary(); loadSceneLibrary(); }
 }
 
 function showRoom() {
@@ -181,7 +171,7 @@ function updateGridSize() {
 }
 
 function pushSceneUpdate() {
-    _sb.from('rooms').update({ scene: _scene }).eq('id', _roomCode).then(() => {});
+    _sb.from('rooms').update({ scene: _scene }).eq('id', _roomId).then(() => {});
     _channel.send({ type: 'broadcast', event: 'scene_updated', payload: _scene });
 }
 
@@ -483,7 +473,7 @@ async function removeToken(id) {
 
 async function clearAllTokens() {
     if (!_isAdmin || !confirm('Remove all tokens from scene?')) return;
-    await _sb.from('room_tokens').delete().eq('room_id', _roomCode);
+    await _sb.from('room_tokens').delete().eq('room_id', _roomId);
     Object.keys(_tokens).forEach(id => {
         if (_tokens[id]?.el) _tokens[id].el.remove();
         _channel.send({ type: 'broadcast', event: 'token_removed', payload: { id } });
@@ -528,7 +518,7 @@ async function confirmAddNPCToken() {
     const cy = (canvas?.offsetHeight || 500) / 2;
 
     const { data, error } = await _sb.from('room_tokens').insert({
-        room_id: _roomCode, owner_id: null,
+        room_id: _roomId, owner_id: null,
         name, image_url: imageUrl, token_type: 'npc',
         hp_max: hp, hp_current: hp, sta_max: null, sta_current: null,
         x: cx, y: cy, size, is_hidden: false,
@@ -645,7 +635,7 @@ function startTrayDrag(e, trayEl) {
         }
 
         const { data, error } = await _sb.from('room_tokens').insert({
-            room_id: _roomCode, owner_id: _session.userId,
+            room_id: _roomId, owner_id: _session.userId,
             name, label, image_url: imageUrl, token_type: type,
             hp_max: hpMax, hp_current: hpMax,
             sta_max: staMax, sta_current: staMax,
@@ -738,7 +728,7 @@ async function placeLibraryToken(libId) {
     const cy = (canvas?.offsetHeight || 500) / 2;
 
     const { data, error } = await _sb.from('room_tokens').insert({
-        room_id: _roomCode, owner_id: null,
+        room_id: _roomId, owner_id: null,
         name: t.name, image_url: t.image_url, token_type: 'npc',
         hp_max: t.hp_max, hp_current: t.hp_max, sta_max: null, sta_current: null,
         x: cx, y: cy, size: 1, is_hidden: false,
@@ -883,7 +873,7 @@ function clearInitiative() {
 }
 
 function pushInitiativeUpdate() {
-    _sb.from('rooms').update({ initiative: _initiative }).eq('id', _roomCode).then(() => {});
+    _sb.from('rooms').update({ initiative: _initiative }).eq('id', _roomId).then(() => {});
     _channel.send({ type: 'broadcast', event: 'initiative_updated', payload: { initiative: _initiative, currentTurn: _currentTurn } });
     renderInitiativeList();
 }
@@ -902,7 +892,7 @@ async function sendChatMessage() {
     input.value = '';
 
     const msg = {
-        room_id:  _roomCode,
+        room_id:  _roomId,
         user_id:  _session.userId,
         username: _session.username,
         message:  text,
@@ -917,12 +907,8 @@ async function sendChatMessage() {
 
 async function sendSystemMessage(text) {
     const msg = {
-        room_id:  _roomCode,
-        user_id:  _session.userId,
-        username: 'System',
-        message:  text,
-        msg_type: 'system',
-        created_at: new Date().toISOString(),
+        room_id: _roomId, user_id: _session.userId, username: 'System',
+        message: text, msg_type: 'system', created_at: new Date().toISOString(),
     };
     await _sb.from('room_chat').insert(msg);
     _channel.send({ type: 'broadcast', event: 'chat_message', payload: msg });
@@ -988,7 +974,7 @@ async function sendRollToChat(count, sides, rolls) {
     const total = rolls.reduce((a,b)=>a+b,0);
     const text  = `🎲 ${count}d${sides}: [${rolls.join(', ')}] = ${total}`;
     const msg = {
-        room_id: _roomCode, user_id: _session.userId, username: _session.username,
+        room_id: _roomId, user_id: _session.userId, username: _session.username,
         message: text, msg_type: 'roll', created_at: new Date().toISOString(),
     };
     await _sb.from('room_chat').insert(msg);
@@ -1013,7 +999,7 @@ async function confirmCloseRoom() {
     if (!_isAdmin) return;
     if (!confirm('Close this room for everyone? This will kick all players.')) return;
     _channel.send({ type: 'broadcast', event: 'room_closed', payload: {} });
-    await _sb.from('rooms').update({ is_open: false }).eq('id', _roomCode);
+    await _sb.from('rooms').update({ is_open: false }).eq('id', _roomId);
     await _channel.unsubscribe();
     window.location.href = 'admin.html';
 }

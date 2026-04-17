@@ -931,7 +931,7 @@
             return;
         }
         if (msgEl) { msgEl.textContent = 'Checking room…'; msgEl.style.color = 'var(--text-muted)'; }
-        const { data, error } = await _sb.from('rooms').select('id, is_open').eq('id', code).single();
+        const { data, error } = await _sb.from('rooms').select('id, code, is_open').eq('code', code).single();
         if (error || !data) {
             if (msgEl) { msgEl.textContent = 'Room not found.'; msgEl.style.color = 'var(--danger)'; }
             return;
