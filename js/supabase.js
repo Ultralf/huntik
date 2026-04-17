@@ -94,32 +94,24 @@ async function sbChangeUsername(newUsername) {
 
 // Create a new player account (admin only)
 async function sbAdminCreateUser(email, password, username, displayName) {
-    // 1. Create auth user via service role
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_SERVICE}`,
-            'apikey': SUPABASE_SERVICE,
-        },
-        body: JSON.stringify({
-            email,
-            password,
-            email_confirm: true,
-            user_metadata: { username, display_name: displayName, role: 'player' },
-        }),
+    // Use Supabase admin client to create user
+    const { data, error } = await _sbA.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { username, display_name: displayName, role: 'player' },
     });
-    const json = await res.json();
-    if (!res.ok) return { ok: false, error: json.message || json.error || 'Unknown error' };
 
-    const userId = json.id;
+    if (error) return { ok: false, error: error.message };
 
-    // 2. Upsert profile row (trigger should handle it, but ensure it exists)
+    const userId = data.user.id;
+
+    // Upsert profile row (trigger should handle it, but ensure it exists)
     await _sbA.from('profiles').upsert({
         id: userId, username, display_name: displayName, role: 'player'
-    });
+    }, { onConflict: 'id' });
 
-    // 3. Ensure character + titans rows exist
+    // Ensure character + titans rows exist
     await _sbA.from('characters').upsert({ user_id: userId, data: {} }, { onConflict: 'user_id' });
     await _sbA.from('titans').upsert({ user_id: userId, data: [] }, { onConflict: 'user_id' });
 
