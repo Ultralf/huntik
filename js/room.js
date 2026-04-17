@@ -535,6 +535,15 @@ async function confirmAddNPCToken() {
 }
 
 // ─── Player token tray ────────────────────────────────────────────────────────
+// Inline titan HP calc (mirrors calcTitanDerived in titans.js, no dependency needed)
+function _titanHP(titan, seekerRank) {
+    const rankNums = {'D-':1,'D':2,'D+':3,'C-':4,'C':5,'C+':6,'B-':7,'B':8,'B+':9,'A-':10,'A':11,'A+':12,'S-':13,'S':14,'S+':15};
+    const sizeBonus = { small:1, average:2, large:3, colossal:4 };
+    const rankNum = rankNums[seekerRank || 'D-'] || 1;
+    const bonus   = sizeBonus[titan.size] || 2;
+    return (titan.baseHP || 30) + (rankNum * bonus);
+}
+
 async function buildPlayerTray() {
     const container = document.getElementById('trayTokensContainer');
     if (!container) return;
@@ -562,7 +571,8 @@ async function buildPlayerTray() {
 
     // Titan tokens
     titans.forEach(t => {
-        const el = makeTrayToken(t.name || 'Titan', `(${_session.username})`, t.image, 'titan', null, null);
+        const hp = _titanHP(t, char?.rank || 'D-');
+        const el = makeTrayToken(t.name || 'Titan', `(${_session.username})`, t.image, 'titan', hp, null);
         container.appendChild(el);
     });
 }

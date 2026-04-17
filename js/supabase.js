@@ -118,6 +118,19 @@ async function sbAdminCreateUser(email, password, username, displayName) {
     return { ok: true, userId };
 }
 
+// Delete a player account (admin only)
+async function sbAdminDeleteUser(userId) {
+    // Delete character, titans, and profile rows first
+    await _sbA.from('characters').delete().eq('user_id', userId);
+    await _sbA.from('titans').delete().eq('user_id', userId);
+    // Delete the auth user (cascades profile via trigger or FK)
+    const { error } = await _sbA.auth.admin.deleteUser(userId);
+    if (error) return { ok: false, error: error.message };
+    // Also delete profile row in case no cascade
+    await _sbA.from('profiles').delete().eq('id', userId);
+    return { ok: true };
+}
+
 // List all player profiles (admin)
 async function sbAdminGetAllProfiles() {
     const { data, error } = await _sbA.from('profiles').select('*').order('username');

@@ -1093,6 +1093,7 @@ async function renderPlayersTab() {
                 <div style="display:flex;gap:0.35rem">
                     ${char ? `<button class="btn btn-ghost btn-sm" onclick="openPlayerView('${p.username}')">View</button>` : ''}
                     <button class="btn btn-secondary btn-sm" onclick="openPlayerEdit('${p.username}')">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="adminDeleteAccount('${p.username}','${p.id}')">Delete</button>
                 </div>
             </td>
         </tr>`;
@@ -1143,6 +1144,13 @@ async function adminCreateAccount() {
     document.getElementById('new-displayname').value='';
     document.getElementById('new-password').value='';
     setTimeout(() => renderPlayersTab(), 1200);
+}
+
+async function adminDeleteAccount(username, userId) {
+    if (!confirm(`Delete account "${username}"? This will permanently delete their character and all data. This cannot be undone.`)) return;
+    const result = await sbAdminDeleteUser(userId);
+    if (!result.ok) { alert('Failed to delete account: ' + (result.error || 'Unknown error')); return; }
+    renderPlayersTab();
 }
 
 // ─── Player View modal ────────────────────────────────────────────────────────
