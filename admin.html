@@ -18,7 +18,9 @@
             <button class="tab-btn" data-tab="rooms">Rooms</button>
         </nav>
         <div class="top-bar-right">
-            <span class="char-name-display">Game Master</span>
+            <span class="top-bar-account" id="adminAccountBtn" onclick="openAdminAccountSettings()" title="Account settings" style="cursor:pointer">
+                Game Master ⚙
+            </span>
             <button class="btn btn-ghost btn-sm" id="logoutBtn">Logout</button>
         </div>
     </header>
@@ -261,6 +263,39 @@
     </main>
 </div>
 
+<!-- ═══════════════════ ADMIN ACCOUNT SETTINGS MODAL ══════════════════════════ -->
+<div class="modal" id="adminAccountModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head">
+            <h2>Account Settings</h2>
+            <button class="modal-close" onclick="closeAdminAccountSettings()">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="adminAccountForm">
+                <div class="form-section">
+                    <div class="form-section-title">Username</div>
+                    <div class="form-field">
+                        <label for="admin-acc-loginName">Change your login username</label>
+                        <input type="text" id="admin-acc-loginName" placeholder="New username (min 3 chars)" autocomplete="off">
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-section-title">Change Password</div>
+                    <div class="form-row cols-2">
+                        <div class="form-field"><label for="admin-acc-newPass">New Password</label><input type="password" id="admin-acc-newPass" placeholder="Leave blank to keep"></div>
+                        <div class="form-field"><label for="admin-acc-confirmPass">Confirm New</label><input type="password" id="admin-acc-confirmPass" placeholder="Repeat new password"></div>
+                    </div>
+                </div>
+                <div id="admin-acc-msg" class="acc-msg"></div>
+            </form>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeAdminAccountSettings()">Cancel</button>
+            <button class="btn btn-primary" onclick="document.getElementById('adminAccountForm').requestSubmit()">Save</button>
+        </div>
+    </div>
+</div>
+
 <!-- ═══════════════════ EDIT MODAL (feats / styles / materials / enchantments / moves) ══ -->
 <div class="modal" id="editModal">
     <div class="modal-box" style="max-width:520px">
@@ -430,9 +465,59 @@
         clearSession();
         window.location.href = 'index.html';
     });
+    // Show current username in top bar
+    const adminBtn = document.getElementById('adminAccountBtn');
+    if (adminBtn) adminBtn.textContent = (session.username || 'Game Master') + ' ⚙';
     await initLists();
     refreshAllLists();
 })();
+
+// ─── Admin Account Settings ───────────────────────────────────────────────────
+function openAdminAccountSettings() {
+    const session = getSession();
+    const el = document.getElementById('admin-acc-loginName');
+    if (el) el.value = session?.username || '';
+    const np = document.getElementById('admin-acc-newPass');
+    const cp = document.getElementById('admin-acc-confirmPass');
+    if (np) np.value = '';
+    if (cp) cp.value = '';
+    const msg = document.getElementById('admin-acc-msg');
+    if (msg) { msg.textContent = ''; msg.className = 'acc-msg'; }
+    document.getElementById('adminAccountModal').classList.add('open');
+}
+
+function closeAdminAccountSettings() {
+    document.getElementById('adminAccountModal').classList.remove('open');
+}
+
+document.getElementById('adminAccountForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const newLogin    = document.getElementById('admin-acc-loginName').value.trim();
+    const newPass     = document.getElementById('admin-acc-newPass').value;
+    const confirmPass = document.getElementById('admin-acc-confirmPass').value;
+    const msgEl       = document.getElementById('admin-acc-msg');
+    const showError = m => { msgEl.textContent = m; msgEl.className = 'acc-msg error'; };
+    const showOk    = m => { msgEl.textContent = m; msgEl.className = 'acc-msg success'; };
+
+    if (newPass) {
+        if (newPass !== confirmPass) { showError('New passwords do not match.'); return; }
+        if (newPass.length < 6)     { showError('Password must be at least 6 characters.'); return; }
+        const ok = await sbChangePassword(newPass);
+        if (!ok) { showError('Failed to change password. Please try again.'); return; }
+    }
+
+    if (newLogin && newLogin.length >= 3) {
+        const ok = await sbChangeUsername(newLogin);
+        if (!ok) { showError('Username already taken or invalid.'); return; }
+        const adminBtn = document.getElementById('adminAccountBtn');
+        if (adminBtn) adminBtn.textContent = newLogin + ' ⚙';
+    }
+
+    showOk('Settings saved!');
+    document.getElementById('admin-acc-newPass').value = '';
+    document.getElementById('admin-acc-confirmPass').value = '';
+    setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 3000);
+});
 
 // ─── Tab switching ────────────────────────────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {

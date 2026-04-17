@@ -506,10 +506,18 @@
                         <div class="form-field"><label for="tf-name">Titan Name *</label><input type="text" id="tf-name" placeholder="e.g. Holototh" required></div>
                         <div class="form-field"><label for="tf-type">Type</label><input type="text" id="tf-type" placeholder="e.g. Warrior, Support..."></div>
                     </div>
-                    <div class="form-row cols-3">
+                    <div class="form-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem">
                         <div class="form-field">
                             <label for="tf-rank">Rank</label>
                             <select id="tf-rank"><option>D-</option><option>D</option><option>D+</option><option>C-</option><option selected>C</option><option>C+</option><option>B-</option><option>B</option><option>B+</option><option>A-</option><option>A</option><option>A+</option><option>S-</option><option>S</option><option>S+</option></select>
+                        </div>
+                        <div class="form-field">
+                            <label for="tf-alignment">Alignment</label>
+                            <select id="tf-alignment">
+                                <option value="Neutral">Neutral</option>
+                                <option value="Lawful">Lawful</option>
+                                <option value="Chaotic">Chaotic</option>
+                            </select>
                         </div>
                         <div class="form-field">
                             <label for="tf-size">Size</label>

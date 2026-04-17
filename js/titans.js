@@ -17,6 +17,7 @@ function blankTitan() {
     return {
         id: Date.now().toString(),
         name: '', type: '', rank: 'D-',
+        alignment: 'Neutral',
         size: 'average',
         linkDifficulty: 50,
         baseHP: 30,
@@ -203,7 +204,8 @@ function viewTitan(id) {
     const d = calcTitanDerived(titan, char?.rank || 'D-');
     const rl = getRankLetter(titan.rank);
     const sizeLabel = titan.size.charAt(0).toUpperCase() + titan.size.slice(1);
-    const alignment = char?.alignment || '—';
+    const alignment = titan.alignment || 'Neutral';
+    const alignMatch = char?.alignment && char.alignment === alignment;
     const bp = titan.bp || 0;
     const tier = getTier(bp);
     const nextBP = getNextTierBP(bp);
@@ -224,7 +226,7 @@ function viewTitan(id) {
                 <h2 class="char-name">${titan.name || 'Unnamed Titan'}</h2>
                 <div class="sheet-badges" style="margin:0.5rem 0">
                     <span class="badge badge-rank rank-${rl.toLowerCase()}">${titan.rank}</span>
-                    <span class="badge badge-alignment">${alignment}</span>
+                    <span class="badge badge-alignment">${alignment}${alignMatch ? ' ✦' : ''}</span>
                     <span class="badge badge-weapon">${sizeLabel}</span>
                     <span style="font-size:0.7rem;font-weight:700;color:${tierColors[tier]};border:1px solid ${tierColors[tier]};padding:0.15rem 0.5rem;border-radius:4px">Tier ${tier}</span>
                 </div>
@@ -324,6 +326,7 @@ function closeTitanModal() {
 function populateTitanForm(titan) {
     const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
     sv('tf-name', titan.name); sv('tf-type', titan.type); sv('tf-rank', titan.rank);
+    sv('tf-alignment', titan.alignment || 'Neutral');
     sv('tf-size', titan.size); sv('tf-linkDifficulty', titan.linkDifficulty);
     sv('tf-baseHP', titan.baseHP);
     sv('tf-ATK', titan.ATK); sv('tf-DEF', titan.DEF);
@@ -350,6 +353,7 @@ function readTitanForm() {
     return {
         id: _editingTitanId || Date.now().toString(),
         name: t('tf-name'), type: t('tf-type'), rank: t('tf-rank'),
+        alignment: t('tf-alignment') || 'Neutral',
         size: t('tf-size'), linkDifficulty: g('tf-linkDifficulty'), baseHP: g('tf-baseHP'),
         ATK: g('tf-ATK'), DEF: g('tf-DEF'), AGL: g('tf-AGL'), SPL: g('tf-SPL'),
         traits: t('tf-traits'), abilities: readAbilities(),
@@ -371,8 +375,9 @@ function submitTitanForm(e) {
         // New bind — check alignment bonus
         const char = loadCharacter();
         const charAlignment = char?.alignment || '';
-        if (charAlignment && titan.type && titan.type.toLowerCase().includes(charAlignment.toLowerCase())) {
+        if (charAlignment && titan.alignment && titan.alignment === charAlignment) {
             titan.bp = (titan.bp || 0) + 50;
+            alert(`Alignment match! ${titan.name} starts with 50 bonus BP.`);
         }
         titans.push(titan);
     } else {

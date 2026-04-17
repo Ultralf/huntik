@@ -1617,12 +1617,8 @@ function confirmSpendPPR() {
 //  ACCOUNT SETTINGS
 // ═══════════════════════════════════════════════════════════════════════════════
 function openAccountSettings() {
-    const session  = getSession();
-    const accounts = getAccounts();
-    const acc      = accounts[session?.username];
-    // Show current login name (alias if set, otherwise raw username)
-    setValue('acc-loginName', acc?.loginAlias || session?.username || '');
-    setValue('acc-currentPass', '');
+    const session = getSession();
+    setValue('acc-loginName', session?.username || '');
     setValue('acc-newPass', '');
     setValue('acc-confirmPass', '');
     const msg = document.getElementById('acc-msg');
