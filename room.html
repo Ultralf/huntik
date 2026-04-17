@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Huntik — Room</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/room.css">
+</head>
+<body class="room-body">
+
+<!-- ═══════════════════════════════════════════════════════ ROOM LAYOUT -->
+<div class="room-layout" id="roomLayout" style="display:none">
+
+    <!-- ─── Top bar ──────────────────────────────────────────────────── -->
+    <header class="room-topbar">
+        <div class="room-topbar-left">
+            <span class="top-bar-logo" style="font-size:1rem">HUNTIK</span>
+            <span class="room-code-badge" id="roomCodeDisplay">——</span>
+            <span class="room-status-dot" id="roomStatusDot" title="Connected"></span>
+        </div>
+        <div class="room-topbar-center">
+            <button class="room-tab-btn active" data-rtab="scene" onclick="switchRoomTab('scene')">⚔ Scene</button>
+            <button class="room-tab-btn" data-rtab="initiative" onclick="switchRoomTab('initiative')">⚡ Initiative</button>
+            <button class="room-tab-btn" data-rtab="chat" onclick="switchRoomTab('chat')" id="chatTabBtn">💬 Chat</button>
+            <!-- Admin-only tabs -->
+            <button class="room-tab-btn admin-only" data-rtab="library" onclick="switchRoomTab('library')">📚 Library</button>
+            <button class="room-tab-btn admin-only" data-rtab="scenes" onclick="switchRoomTab('scenes')">🖼 Scenes</button>
+            <!-- Player sheet tabs (player-only, open in sidebar) -->
+            <button class="room-tab-btn player-only" onclick="togglePlayerSheet()">📋 My Sheet</button>
+        </div>
+        <div class="room-topbar-right">
+            <span id="roomUserLabel" class="room-user-label">—</span>
+            <button class="btn btn-ghost btn-sm admin-only" id="closeRoomBtn" onclick="confirmCloseRoom()">Close Room</button>
+            <button class="btn btn-ghost btn-sm" id="leaveRoomBtn" onclick="leaveRoom()">Leave</button>
+        </div>
+    </header>
+
+    <!-- ─── Main content ──────────────────────────────────────────────── -->
+    <div class="room-main">
+
+        <!-- SCENE TAB -->
+        <div class="room-tab-content active" id="rtab-scene">
+            <div class="scene-outer">
+                <!-- Scene toolbar (admin only) -->
+                <div class="scene-toolbar admin-only">
+                    <div class="scene-toolbar-group">
+                        <button class="scene-tool-btn" onclick="openSceneImagePicker()" title="Change background image">🖼 Background</button>
+                        <button class="scene-tool-btn" id="gridToggleBtn" onclick="toggleGrid()" title="Toggle grid">▦ Grid</button>
+                        <label class="scene-tool-btn" title="Grid size" id="gridSizeLabel" style="display:none">
+                            Size: <input type="number" id="gridSizeInput" min="20" max="200" value="50" style="width:45px;background:transparent;border:none;color:inherit;font-size:inherit;text-align:center" onchange="updateGridSize()">px
+                        </label>
+                    </div>
+                    <div class="scene-toolbar-group">
+                        <button class="scene-tool-btn" onclick="openTokenLibraryPanel()" title="Place token from library">🪆 Token</button>
+                        <button class="scene-tool-btn" onclick="openAddNPCTokenModal()" title="Create new NPC token">+ NPC</button>
+                    </div>
+                    <div class="scene-toolbar-group">
+                        <button class="scene-tool-btn" onclick="clearAllTokens()" title="Remove all tokens from scene" style="color:var(--danger)">🗑 Clear</button>
+                    </div>
+                </div>
+
+                <!-- Player token tray (player only) -->
+                <div class="player-token-tray player-only" id="playerTokenTray">
+                    <div class="tray-label">Your tokens — drag to scene</div>
+                    <div class="tray-tokens" id="trayTokensContainer"></div>
+                </div>
+
+                <!-- The canvas -->
+                <div class="scene-wrap" id="sceneWrap">
+                    <div class="scene-canvas" id="sceneCanvas">
+                        <div class="scene-bg-layer" id="sceneBgLayer"></div>
+                        <canvas class="scene-grid-canvas" id="sceneGridCanvas"></canvas>
+                        <div class="scene-tokens-layer" id="sceneTokensLayer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- INITIATIVE TAB -->
+        <div class="room-tab-content" id="rtab-initiative">
+            <div class="initiative-panel">
+                <div class="initiative-header">
+                    <h2>Initiative Order</h2>
+                    <div class="admin-only" style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                        <button class="btn btn-secondary btn-sm" onclick="openAddInitiativeModal()">+ Add</button>
+                        <button class="btn btn-ghost btn-sm" onclick="sortInitiative()">Sort ↓</button>
+                        <button class="btn btn-ghost btn-sm" onclick="nextTurn()">Next Turn ▶</button>
+                        <button class="btn btn-danger btn-sm" onclick="clearInitiative()">Clear</button>
+                    </div>
+                </div>
+                <div class="initiative-list" id="initiativeList"></div>
+            </div>
+        </div>
+
+        <!-- CHAT TAB -->
+        <div class="room-tab-content" id="rtab-chat">
+            <div class="chat-panel">
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input-row">
+                    <input type="text" id="chatInput" placeholder="Message..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+                    <button class="btn btn-primary btn-sm" onclick="sendChatMessage()">Send</button>
+                    <button class="btn btn-secondary btn-sm" onclick="openDiceRoller()" title="Roll dice">🎲</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIBRARY TAB (admin: token library) -->
+        <div class="room-tab-content admin-only" id="rtab-library">
+            <div class="library-panel">
+                <div class="library-header">
+                    <h2>Token Library</h2>
+                    <button class="btn btn-primary btn-sm" onclick="openCreateLibraryTokenModal()">+ Create Token</button>
+                </div>
+                <div class="library-grid" id="libraryGrid"></div>
+            </div>
+        </div>
+
+        <!-- SCENES TAB (admin: scene image library) -->
+        <div class="room-tab-content admin-only" id="rtab-scenes">
+            <div class="library-panel">
+                <div class="library-header">
+                    <h2>Scene Images</h2>
+                    <button class="btn btn-primary btn-sm" onclick="openUploadSceneModal()">+ Upload</button>
+                </div>
+                <div class="library-grid" id="sceneLibraryGrid"></div>
+            </div>
+        </div>
+
+    </div><!-- /room-main -->
+</div><!-- /room-layout -->
+
+<!-- ─── Player Sheet Sidebar ───────────────────────────────────────────── -->
+<div class="player-sheet-sidebar" id="playerSheetSidebar">
+    <div class="sidebar-header">
+        <span>Character Sheet</span>
+        <button class="modal-close" onclick="togglePlayerSheet()">✕</button>
+    </div>
+    <div class="sidebar-body" id="sidebarBody">
+        <!-- Loads player.html tab content dynamically -->
+        <iframe src="player.html" id="playerSheetFrame" style="width:100%;height:100%;border:none;background:var(--bg)"></iframe>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ MODALS -->
+
+<!-- Add Initiative Entry -->
+<div class="modal" id="initiativeModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head"><h2>Add Initiative Entry</h2><button class="modal-close" onclick="closeModal('initiativeModal')">✕</button></div>
+        <div class="modal-body">
+            <div class="form-field" style="margin-bottom:0.75rem">
+                <label>Name</label>
+                <input type="text" id="init-name" placeholder="Character or creature name">
+            </div>
+            <div class="form-field">
+                <label>Initiative Roll</label>
+                <input type="number" id="init-roll" placeholder="e.g. 18">
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('initiativeModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="addInitiativeEntry()">Add</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add NPC Token -->
+<div class="modal" id="npcTokenModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head"><h2 id="npcTokenModalTitle">New NPC Token</h2><button class="modal-close" onclick="closeModal('npcTokenModal')">✕</button></div>
+        <div class="modal-body">
+            <div class="form-row cols-2" style="align-items:start">
+                <div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>Name *</label>
+                        <input type="text" id="npc-name" placeholder="e.g. Goblin Scout">
+                    </div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>HP</label>
+                        <input type="number" id="npc-hp" placeholder="e.g. 30" min="1">
+                    </div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>Token Size</label>
+                        <select id="npc-size">
+                            <option value="0.7">Small (0.7×)</option>
+                            <option value="1" selected>Normal (1×)</option>
+                            <option value="1.5">Large (1.5×)</option>
+                            <option value="2">Huge (2×)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-field" style="align-items:center">
+                    <label>Token Image</label>
+                    <div class="img-upload-widget">
+                        <div class="img-upload-preview" id="npc-img-preview" onclick="document.getElementById('npc-img-input').click()">
+                            <span class="img-placeholder-text">?</span>
+                        </div>
+                        <input type="file" id="npc-img-input" accept="image/*" style="display:none">
+                        <span class="btn btn-ghost btn-sm" onclick="document.getElementById('npc-img-input').click()">Upload</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('npcTokenModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmAddNPCToken()">Place on Scene</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Library Token -->
+<div class="modal" id="libraryTokenModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head"><h2>Create Library Token</h2><button class="modal-close" onclick="closeModal('libraryTokenModal')">✕</button></div>
+        <div class="modal-body">
+            <div class="form-row cols-2" style="align-items:start">
+                <div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>Name *</label>
+                        <input type="text" id="lib-name" placeholder="e.g. Orc Warrior">
+                    </div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>HP</label>
+                        <input type="number" id="lib-hp" placeholder="e.g. 40" min="1">
+                    </div>
+                    <div class="form-field" style="margin-bottom:0.75rem">
+                        <label>Notes</label>
+                        <textarea id="lib-notes" rows="2" placeholder="AC, abilities..."></textarea>
+                    </div>
+                </div>
+                <div class="form-field" style="align-items:center">
+                    <label>Image</label>
+                    <div class="img-upload-widget">
+                        <div class="img-upload-preview" id="lib-img-preview" onclick="document.getElementById('lib-img-input').click()">
+                            <span class="img-placeholder-text">?</span>
+                        </div>
+                        <input type="file" id="lib-img-input" accept="image/*" style="display:none">
+                        <span class="btn btn-ghost btn-sm" onclick="document.getElementById('lib-img-input').click()">Upload</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('libraryTokenModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmCreateLibraryToken()">Save to Library</button>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Scene Image -->
+<div class="modal" id="uploadSceneModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head"><h2>Add Scene Image</h2><button class="modal-close" onclick="closeModal('uploadSceneModal')">✕</button></div>
+        <div class="modal-body">
+            <div class="form-field" style="margin-bottom:0.75rem">
+                <label>Name</label>
+                <input type="text" id="scene-img-name" placeholder="e.g. Dungeon Hall">
+            </div>
+            <div class="form-field">
+                <label>Image</label>
+                <div class="img-upload-widget" style="align-items:flex-start">
+                    <div class="img-upload-preview" style="width:100%;height:120px;max-width:100%" id="scene-img-preview" onclick="document.getElementById('scene-img-input').click()">
+                        <span class="img-placeholder-text">Click to upload</span>
+                    </div>
+                    <input type="file" id="scene-img-input" accept="image/*" style="display:none">
+                </div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="closeModal('uploadSceneModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmUploadSceneImage()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Token HP/STA quick edit (appears on token click) -->
+<div class="token-popup" id="tokenPopup" style="display:none">
+    <div class="token-popup-name" id="tokenPopupName">Token</div>
+    <div class="token-popup-stats" id="tokenPopupStats"></div>
+    <div class="token-popup-actions" id="tokenPopupActions"></div>
+    <div class="token-popup-footer admin-only" id="tokenPopupFooter"></div>
+</div>
+
+<!-- Dice Roller -->
+<div class="modal" id="diceModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head"><h2>🎲 Dice Roller</h2><button class="modal-close" onclick="closeModal('diceModal')">✕</button></div>
+        <div class="modal-body">
+            <div class="dice-grid">
+                <button class="dice-btn" onclick="rollDice(4)">d4</button>
+                <button class="dice-btn" onclick="rollDice(6)">d6</button>
+                <button class="dice-btn" onclick="rollDice(8)">d8</button>
+                <button class="dice-btn" onclick="rollDice(10)">d10</button>
+                <button class="dice-btn" onclick="rollDice(12)">d12</button>
+                <button class="dice-btn" onclick="rollDice(20)">d20</button>
+                <button class="dice-btn" onclick="rollDice(100)">d100</button>
+            </div>
+            <div style="display:flex;gap:0.5rem;align-items:center;margin-top:1rem">
+                <input type="number" id="dice-count" min="1" max="20" value="1" style="width:55px">
+                <span>×</span>
+                <select id="dice-sides" style="flex:1">
+                    <option value="4">d4</option>
+                    <option value="6">d6</option>
+                    <option value="8">d8</option>
+                    <option value="10">d10</option>
+                    <option value="12">d12</option>
+                    <option value="20" selected>d20</option>
+                    <option value="100">d100</option>
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="rollCustomDice()">Roll</button>
+            </div>
+            <div id="diceResult" style="font-size:1.3rem;font-weight:700;color:var(--gold);text-align:center;margin-top:1rem;min-height:2rem"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Kick player (admin) -->
+<div class="modal" id="kickModal">
+    <div class="modal-box modal-box-sm">
+        <div class="modal-head"><h2>Players in Room</h2><button class="modal-close" onclick="closeModal('kickModal')">✕</button></div>
+        <div class="modal-body" id="kickModalBody"></div>
+    </div>
+</div>
+
+<!-- Loading screen -->
+<div class="room-loading" id="roomLoading">
+    <div class="room-loading-inner">
+        <div class="top-bar-logo" style="font-size:2rem;margin-bottom:1rem">HUNTIK</div>
+        <div id="roomLoadingMsg" style="color:var(--text-muted);font-size:0.9rem">Connecting to room…</div>
+    </div>
+</div>
+
+<!-- ─── Scripts ──────────────────────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/room.js"></script>
+</body>
+</html>

@@ -122,10 +122,10 @@
                     <p style="font-size:0.85rem;color:var(--text-2)">Enter the room code provided by your Game Master.</p>
                     <div class="room-join-row">
                         <input type="text" id="roomCodeInput" placeholder="Room code...">
-                        <button class="btn btn-primary" onclick="alert('Room functionality requires the online server. Coming soon!')">Connect</button>
+                        <button class="btn btn-primary" onclick="joinRoom()">Connect</button>
                     </div>
                 </div>
-                <div class="room-status-note">Room functionality requires the online server.<br>Ask your GM to set up a session.</div>
+                <div class="room-status-note" id="roomJoinMsg">Enter the 6-character code from your GM.</div>
             </div>
         </div>
 
@@ -879,10 +879,10 @@
                     <p style="font-size:0.85rem;color:var(--text-2)">Enter the room code provided by your Game Master.</p>
                     <div class="room-join-row">
                         <input type="text" id="roomCodeInput" placeholder="Room code...">
-                        <button class="btn btn-primary" onclick="alert('Room functionality coming soon!')">Connect</button>
+                        <button class="btn btn-primary" onclick="joinRoom()">Connect</button>
                     </div>
                 </div>
-                <div class="room-status-note">Room functionality is being implemented.<br>Ask your GM to set up a session.</div>
+                <div class="room-status-note" id="roomJoinMsg">Enter the 6-character code from your GM.</div>
             </div>
         </div>`;
 
@@ -920,6 +920,28 @@
         initTitansPage();
         initWeaponsSection();
     })();
+
+    // ─── Room join ────────────────────────────────────────────────────────────
+    async function joinRoom() {
+        const input = document.getElementById('roomCodeInput');
+        const code  = (input?.value || '').trim().toUpperCase();
+        const msgEl = document.getElementById('roomJoinMsg');
+        if (!code || code.length < 4) {
+            if (msgEl) { msgEl.textContent = 'Please enter a valid room code.'; msgEl.style.color = 'var(--danger)'; }
+            return;
+        }
+        if (msgEl) { msgEl.textContent = 'Checking room…'; msgEl.style.color = 'var(--text-muted)'; }
+        const { data, error } = await _sb.from('rooms').select('id, is_open').eq('id', code).single();
+        if (error || !data) {
+            if (msgEl) { msgEl.textContent = 'Room not found.'; msgEl.style.color = 'var(--danger)'; }
+            return;
+        }
+        if (!data.is_open) {
+            if (msgEl) { msgEl.textContent = 'This room is closed.'; msgEl.style.color = 'var(--danger)'; }
+            return;
+        }
+        window.location.href = `room.html?code=${code}`;
+    }
 </script>
 </body>
 </html>

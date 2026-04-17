@@ -249,13 +249,45 @@
 
         <!-- ════════════════════════ ROOMS TAB ════════════════════════════════ -->
         <div class="tab-content" id="tab-rooms">
-            <div style="max-width:560px;margin:2rem auto;padding:0 1.5rem">
+            <div style="max-width:640px;margin:2rem auto;padding:0 1.5rem">
+
+                <!-- Create room -->
                 <div class="placeholder-section">
-                    <div class="placeholder-header"><h3>Session Rooms</h3></div>
-                    <div class="placeholder-empty">
-                        Room management requires the online server.<br>
-                        <small style="color:var(--text-muted)">Coming soon — create rooms and share a code with your players.</small>
+                    <div class="placeholder-header"><h3>Create Room</h3></div>
+                    <div class="admin-add-form">
+                        <div class="form-field" style="margin-bottom:0.75rem">
+                            <label>Room Name <small style="color:var(--text-muted)">(optional)</small></label>
+                            <input type="text" id="room-name-input" placeholder="e.g. Session 5 — The Dark Keep">
+                        </div>
+                        <div id="room-create-msg" style="font-size:0.82rem;margin-bottom:0.5rem"></div>
+                        <button class="btn btn-primary" onclick="adminCreateRoom()">⚔ Create Room</button>
                     </div>
+                </div>
+
+                <!-- Active room -->
+                <div class="placeholder-section" id="activeRoomSection" style="display:none">
+                    <div class="placeholder-header"><h3>Active Room</h3></div>
+                    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+                        <div>
+                            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.25rem">Room Code</div>
+                            <div style="font-family:'Cinzel',serif;font-size:2rem;color:var(--gold);letter-spacing:0.2em" id="activeRoomCode">——</div>
+                        </div>
+                        <div style="flex:1">
+                            <div style="font-size:0.82rem;color:var(--text-2);margin-bottom:0.5rem" id="activeRoomName"></div>
+                            <div style="font-size:0.75rem;color:var(--text-muted)">Share this code with your players so they can join.</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                        <button class="btn btn-primary" onclick="adminEnterRoom()">Enter Room</button>
+                        <button class="btn btn-secondary" onclick="copyRoomCode()">Copy Code</button>
+                        <button class="btn btn-danger btn-sm" onclick="adminCloseActiveRoom()">Close Room</button>
+                    </div>
+                </div>
+
+                <!-- Past rooms -->
+                <div class="placeholder-section">
+                    <div class="placeholder-header"><h3>Recent Rooms</h3></div>
+                    <div id="pastRoomsList"><div class="placeholder-empty">No rooms created yet.</div></div>
                 </div>
             </div>
         </div>
@@ -1409,6 +1441,95 @@ function resetListsToDefault() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 // (init is now handled by the async auth guard above)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ROOM MANAGEMENT (admin)
+// ═══════════════════════════════════════════════════════════════════════════════
+let _activeRoom = null;
+
+function generateRoomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+}
+
+async function adminCreateRoom() {
+    const session = getSession();
+    const name    = document.getElementById('room-name-input').value.trim() || 'Session';
+    const msgEl   = document.getElementById('room-create-msg');
+    msgEl.style.color = 'var(--text-muted)'; msgEl.textContent = 'Creating room…';
+
+    const code = generateRoomCode();
+    const { data, error } = await _sbA.from('rooms').insert({
+        id: code, created_by: session.userId, name, is_open: true, scene: {}, initiative: [],
+    }).select().single();
+
+    if (error) { msgEl.style.color='var(--danger)'; msgEl.textContent = error.message; return; }
+
+    _activeRoom = data;
+    msgEl.textContent = '';
+    document.getElementById('activeRoomCode').textContent = code;
+    document.getElementById('activeRoomName').textContent  = name;
+    document.getElementById('activeRoomSection').style.display = '';
+    loadPastRooms();
+}
+
+function adminEnterRoom() {
+    if (!_activeRoom) return;
+    window.location.href = `room.html?code=${_activeRoom.id}`;
+}
+
+function copyRoomCode() {
+    const code = _activeRoom?.id;
+    if (!code) return;
+    navigator.clipboard.writeText(code).then(() => alert('Code "' + code + '" copied to clipboard!'));
+}
+
+async function adminCloseActiveRoom() {
+    if (!_activeRoom) return;
+    if (!confirm('Close room "' + _activeRoom.id + '"? All players will be disconnected.')) return;
+    await _sbA.from('rooms').update({ is_open: false }).eq('id', _activeRoom.id);
+    _activeRoom = null;
+    document.getElementById('activeRoomSection').style.display = 'none';
+    loadPastRooms();
+}
+
+async function loadPastRooms() {
+    const session = getSession();
+    const { data } = await _sbA.from('rooms').select('*')
+        .eq('created_by', session.userId).order('created_at', { ascending: false }).limit(10);
+    const container = document.getElementById('pastRoomsList'); if (!container) return;
+    if (!data || data.length === 0) { container.innerHTML = `<div class="placeholder-empty">No rooms yet.</div>`; return; }
+    container.innerHTML = data.map(r => `
+        <div class="admin-list-item" style="justify-content:space-between">
+            <div>
+                <div style="font-weight:600;color:var(--gold-dim);font-family:'Cinzel',serif;letter-spacing:0.1em">${r.id}</div>
+                <div style="font-size:0.78rem;color:var(--text-2)">${r.name} · ${r.is_open ? '<span style="color:var(--rank-c)">Open</span>' : '<span style="color:var(--text-muted)">Closed</span>'}</div>
+            </div>
+            <div style="display:flex;gap:0.35rem">
+                ${r.is_open ? `<button class="btn btn-sm btn-ghost" onclick="rejoinRoom('${r.id}')">Enter</button>` : ''}
+                <button class="btn btn-sm btn-danger" onclick="deletePastRoom('${r.id}')">Delete</button>
+            </div>
+        </div>`).join('');
+}
+
+function rejoinRoom(code) {
+    window.location.href = `room.html?code=${code}`;
+}
+
+async function deletePastRoom(code) {
+    if (!confirm('Delete all data for room ' + code + '?')) return;
+    await _sbA.from('rooms').delete().eq('id', code);
+    loadPastRooms();
+}
+
+// Load past rooms when rooms tab is opened
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    if (btn.dataset.tab === 'rooms') {
+        btn.addEventListener('click', loadPastRooms, { once: false });
+    }
+});
 
 </script>
 </body>
