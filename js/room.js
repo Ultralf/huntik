@@ -296,11 +296,6 @@ function startDrag(e, tokenId) {
         const finalY = e2.clientY - wrapRect.top  + wrap.scrollTop  - _dragOffset.y;
         // Snap to grid
         let snappedX = finalX, snappedY = finalY;
-        if (_scene.gridEnabled) {
-            const gs = _scene.gridSize || 50;
-            snappedX = Math.round(finalX / gs) * gs;
-            snappedY = Math.round(finalY / gs) * gs;
-        }
         const el2 = document.querySelector(`.scene-token[data-id="${_draggingToken}"]`);
         if (el2) { el2.style.left = snappedX + 'px'; el2.style.top = snappedY + 'px'; }
         _tokens[_draggingToken].x = snappedX;
