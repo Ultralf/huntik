@@ -85,7 +85,7 @@ async function loadInitialData() {
     if (chatData) chatData.forEach(m => appendChatMessage(m, false));
     scrollChatToBottom();
 
-    if (!_isAdmin) buildPlayerTray();
+    if (!_isAdmin) await buildPlayerTray();
     if (_isAdmin) { loadTokenLibrary(); loadSceneLibrary(); }
 }
 
@@ -103,11 +103,14 @@ function setMsg(msg) {
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 function switchRoomTab(tab) {
     document.querySelectorAll('.room-tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.room-tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.room-tab-content').forEach(c => {
+        c.classList.remove('active');
+        c.style.display = '';
+    });
     const btn = document.querySelector(`.room-tab-btn[data-rtab="${tab}"]`);
     if (btn) btn.classList.add('active');
     const content = document.getElementById('rtab-' + tab);
-    if (content) { content.classList.add('active'); content.style.display = 'flex'; }
+    if (content) content.classList.add('active');
     if (tab === 'chat') { document.getElementById('chatTabBtn')?.classList.remove('unread'); scrollChatToBottom(); }
 }
 
@@ -532,37 +535,34 @@ async function confirmAddNPCToken() {
 }
 
 // ─── Player token tray ────────────────────────────────────────────────────────
-function buildPlayerTray() {
-    // Get character + titans from the parent page cache
-    // We use window.parent or direct cache if in same page
-    const char   = window._characterCache;
-    const titans = window._titansCache || [];
+async function buildPlayerTray() {
     const container = document.getElementById('trayTokensContainer');
     if (!container) return;
     container.innerHTML = '';
 
+    // Load character and titans fresh from Supabase for this player
+    let char = null;
+    let titans = [];
+    try {
+        char = await sbLoadCharacter();
+        titans = await sbLoadTitans() || [];
+    } catch(e) {}
+
     // Character token
     if (char) {
-        const el = makeTrayToken(
-            char.name || 'Character',
-            `(${_session.username})`,
-            char.image,
-            'character',
-            char.stats?.DEF ? Math.round(char.stats.DEF * 5.5 + 10) : null, // approx HP
-            null
-        );
+        const d = typeof deriveStats === 'function' ? deriveStats(char) : null;
+        const hp = d ? d.HP : null;
+        const sta = d ? d.STA : null;
+        const el = makeTrayToken(char.name || 'Character', `(${_session.username})`, char.image, 'character', hp, sta);
         container.appendChild(el);
+    } else {
+        container.innerHTML = '<div style="color:var(--text-muted);font-size:0.78rem">No character found.</div>';
+        return;
     }
 
     // Titan tokens
     titans.forEach(t => {
-        const el = makeTrayToken(
-            t.name || 'Titan',
-            `(${_session.username})`,
-            t.image,
-            'titan',
-            null, null
-        );
+        const el = makeTrayToken(t.name || 'Titan', `(${_session.username})`, t.image, 'titan', null, null);
         container.appendChild(el);
     });
 }

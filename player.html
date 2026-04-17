@@ -940,7 +940,7 @@
             if (msgEl) { msgEl.textContent = 'This room is closed.'; msgEl.style.color = 'var(--danger)'; }
             return;
         }
-        window.location.href = `room.html?code=${code}`;
+        window.open(`room.html?code=${code}`, '_blank');
     }
 </script>
 </body>

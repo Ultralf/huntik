@@ -1478,7 +1478,7 @@ async function adminCreateRoom() {
 
 function adminEnterRoom() {
     if (!_activeRoom) return;
-    window.location.href = `room.html?code=${_activeRoom.code}`;
+    window.open(`room.html?code=${_activeRoom.code}`, '_blank');
 }
 
 function copyRoomCode() {
@@ -1516,7 +1516,7 @@ async function loadPastRooms() {
 }
 
 function rejoinRoom(code) {
-    window.location.href = `room.html?code=${code}`;
+    window.open(`room.html?code=${code}`, '_blank');
 }
 
 async function deletePastRoom(code) {
