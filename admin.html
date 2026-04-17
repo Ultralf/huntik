@@ -944,7 +944,20 @@ async function renderPlayersTab() {
     const players  = profiles.filter(p => p.role === 'player');
 
     if (players.length === 0) {
-        container.innerHTML = `<div style="color:var(--text-muted);padding:1rem">No player accounts yet. Create one below.</div>`;
+        container.innerHTML = `
+            <div style="color:var(--text-muted);padding:1rem;margin-bottom:1rem">No player accounts yet. Create one below.</div>
+            <div class="placeholder-section">
+                <div class="placeholder-header"><h3>Create New Player Account</h3></div>
+                <div class="admin-add-form" style="max-width:480px">
+                    <div class="form-row cols-2">
+                        <div class="form-field"><label>Username</label><input type="text" id="new-username" placeholder="e.g. player11"></div>
+                        <div class="form-field"><label>Display Name</label><input type="text" id="new-displayname" placeholder="e.g. João"></div>
+                    </div>
+                    <div class="form-field"><label>Password</label><input type="password" id="new-password" placeholder="Initial password"></div>
+                    <div id="create-account-msg" style="font-size:0.82rem;margin-bottom:0.5rem"></div>
+                    <button class="btn btn-primary btn-sm" onclick="adminCreateAccount()">Create Account</button>
+                </div>
+            </div>`;
         return;
     }
 
